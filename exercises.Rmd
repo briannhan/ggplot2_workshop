@@ -62,16 +62,42 @@ We will look at the basic ggplot2 use using the faithful dataset, giving
 information on the eruption pattern of the Old Faithful geyser in Yellowstone
 National Park.
 
+Let's talk geometry types for a second. A few different categories of geometries
+in ggplot2 are geom_point() and geom_histogram(). geom_point() is point geometry,
+used to create scatterplots. geom_histogram() is histogram geometry used to create histograms.
+
+Not all geometries have the same mapping requirements. You can't map geom_point()
+without both x & y, while for geom_histogram(), you just need x; it'll calculate
+the y by itself by putting points into bins and counting the number of points in
+those bins
+
+If you wanna know the aesthetics (mapping requirements) of a geometry type, use the help() function
+to read about the geometry type, then scroll down to aesthetics. In aesthetics, you'll
+get the mapping requirements of the geometry type
+
+
+
 ```{r}
 data("faithful")
 # Basic scatterplot
 ggplot(data = faithful, 
        mapping = aes(x = eruptions, y = waiting)) + 
   geom_point()
+#aes() stands for aesthetics
+#the mapping placed outside the geometry
+#this defines a global data and also a global mapping, both of which are inherited by all the "geoms" (whatever that means)
+
+#these are 2 different ways of graphing that will yield the same plot
+
 # Data and mapping can be given both as global (in ggplot()) or per layer
 ggplot() + 
   geom_point(mapping = aes(x = eruptions, y = waiting),
              data = faithful)
+#the mapping placed inside the geometry
+#there's no global data here. We have to specify new layers for everything, mapping, data
+
+#so mapping is a parameter inside both ggplot() and geom_point()
+#I've seen similar stuff with python matplotlib. But fuck. That shit is weird
 ```
 
 If an aesthetic is linked to data it is put into `aes()`
@@ -79,6 +105,8 @@ If an aesthetic is linked to data it is put into `aes()`
 ```{r}
 ggplot(faithful) + 
   geom_point(aes(x = eruptions, y = waiting, colour = eruptions < 3))
+#eruptions = 3 is the threshold here. If eruptions < 3, then the dots get a certain color. If eruptions > 3, then the dots get a certain color
+#the 1st way of dealing with colors: mapping colors. You're mapping colors to specific values only, not to all values
 ```
 
 If you simple want to set it to a value, put it outside of `aes()`
@@ -87,6 +115,17 @@ If you simple want to set it to a value, put it outside of `aes()`
 ggplot(faithful) + 
   geom_point(aes(x = eruptions, y = waiting),
              colour = 'steelblue')
+#this is setting the color to steelblue
+#the second way of dealing with colors: setting them. You're setting colors for the entire dataset, not just specific values
+
+
+ggplot(faithful) + 
+  geom_point(aes(x = eruptions, y = waiting, colour = 'steelblue'))
+#this would create a weird plot where the color isn't steelblue, and also a legend
+#mapping is done inside aes()
+#steelblue now isn't a color. It's just an attribute that every data point has, so now R thinks that
+#each data point has a value called 'steelblue', let's just call it red
+#this is a poor example of mapping colors. You only map colors to specific data values
 ```
 
 Some geoms only need a single mapping and will calculate the rest for you
@@ -103,6 +142,10 @@ top of the density contours in the example below.
 ggplot(faithful, aes(x = eruptions, y = waiting)) + 
   geom_density_2d() + 
   geom_point()
+#your plots aren't confined to a single geometry type. This is a plot with 2 types of geometry:
+#density geometry & point geometry
+#the first layer of geometry is geom_density_2d(), and it's below the 2nd layer of geometry
+#which is the geom_point() geometry
 ```
 
 #### Exercise
@@ -112,7 +155,9 @@ See `?geom_point` for more information on the point layer.
 
 ```{r}
 ggplot(faithful) + 
-  geom_point(aes(x = eruptions, y = waiting))
+  geom_point(aes(x = eruptions, y = waiting), shape = 0, alpha = 0.22)
+
+#hmm there's not a lot of information on the individual arguments in aesthetics
 ```
 
 Hint 1: transparency is controlled with `alpha`, and shape with `shape`
@@ -124,7 +169,9 @@ Colour the two distributions in the histogram with different colours
 
 ```{r}
 ggplot(faithful) + 
-  geom_histogram(aes(x = eruptions))
+  geom_histogram(aes(x = eruptions, fill = eruptions < 3.2))
+#in ggplot2, the color argument only refers to the color of the outline
+#while the fill argument refers to the color inside each bar
 ```
 
 Hint 1: For polygons you can map two different colour-like aesthetics: `colour` 
@@ -137,7 +184,14 @@ Colour the distributions in the histogram by whether `waiting` is above or below
 
 ```{r}
 ggplot(faithful) + 
-  geom_histogram(aes(x = eruptions))
+  geom_histogram(aes(x = eruptions, fill = waiting > 60))
+#in this graph, the bars are stacked on top of each other
+
+
+ggplot(faithful) + 
+  geom_histogram(aes(x = eruptions, fill = waiting > 60), position = 'dodge')
+#wow. It divided each bin by color. Each bin can have 1 or 2 colors. Wow. Damn.
+#the position = "dodge" argument divides each bin into fully separated bins
 ```
 
 Change the plot above by setting `position = 'dodge'` in `geom_histogram()` 
@@ -150,20 +204,22 @@ how to draw straight lines from a slope and intercept.
 
 ```{r}
 ggplot(faithful) + 
-  geom_point(aes(x = eruptions, y = waiting))
+  geom_point(aes(x = eruptions, y = waiting)) +
+  geom_vline(xintercept = 3)
 ```
 
 ### Stat
 We will use the `mpg` dataset giving information about fuel economy on different 
 car models.
 
-Every geom has a stat. This is why new data (`count`) can appear when using 
-`geom_bar()`.
+Every geom has a default statistic (stat). This is why new data (`count`) can appear when using 
+`geom_bar()`. For most people, the geometry comes first, they don't give a shit about the statistic
 
 ```{r}
 data("mpg")
 ggplot(mpg) + 
   geom_bar(aes(x = class))
+#geom_bar() uses count_stat() by default to count the number of data points in a bar
 ```
 
 The stat can be overwritten. If we have precomputed count we don't want any 
